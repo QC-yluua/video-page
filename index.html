@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>私人视频空间 · 密码保护</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none; /* 避免普通文本被随意选中，提升视觉整洁感，不影响输入框 */
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(145deg, #0b1820 0%, #0f212e 100%);
+            font-family: 'Segoe UI', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Roboto', 'Helvetica Neue', sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+        }
+
+        /* 主卡片容器 */
+        .glass-card {
+            background: rgba(18, 28, 35, 0.75);
+            backdrop-filter: blur(16px);
+            border-radius: 2.5rem;
+            box-shadow: 0 25px 45px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05);
+            width: 100%;
+            max-width: 1100px;
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+
+        /* 内容区域，内边距动态 */
+        .content-wrapper {
+            padding: 2rem 2rem 2.5rem 2rem;
+        }
+
+        /* 密码面板 + 视频面板共用过渡 */
+        .panel {
+            transition: opacity 0.35s cubic-bezier(0.2, 0.9, 0.4, 1.1), transform 0.3s ease;
+        }
+
+        .hidden-panel {
+            display: none;
+        }
+
+        /* 密码区域 */
+        .lock-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 1.5rem 1rem 2rem 1rem;
+        }
+
+        .lock-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            filter: drop-shadow(0 8px 12px rgba(0,0,0,0.3));
+        }
+
+        h2 {
+            font-size: 1.9rem;
+            font-weight: 600;
+            background: linear-gradient(135deg, #F0F9FF, #C0E0FF);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            letter-spacing: -0.3px;
+            margin-bottom: 0.6rem;
+        }
+
+        .sub {
+            color: #9bb8d0;
+            font-weight: 400;
+            font-size: 1rem;
+            margin-bottom: 2rem;
+            border-bottom: 1px dashed rgba(100, 150, 180, 0.3);
+            display: inline-block;
+            padding-bottom: 0.3rem;
+        }
+
+        .password-box {
+            background: rgba(0, 0, 0, 0.45);
+            border-radius: 3rem;
+            padding: 0.2rem;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 0.8rem;
+            margin: 1.2rem 0 1rem;
+            width: 100%;
+            max-width: 360px;
+            backdrop-filter: blur(4px);
+        }
+
+        .password-input {
+            flex: 2;
+            min-width: 180px;
+            background: rgba(20, 30, 38, 0.9);
+            border: 1px solid rgba(80, 140, 170, 0.6);
+            padding: 0.9rem 1.4rem;
+            border-radius: 3rem;
+            font-size: 1rem;
+            font-weight: 500;
+            color: #eef5ff;
+            outline: none;
+            transition: all 0.2s;
+            font-family: monospace;
+            letter-spacing: 0.5px;
+        }
+
+        .password-input:focus {
+            border-color: #5db0e0;
+            box-shadow: 0 0 0 3px rgba(93, 176, 224, 0.3);
+            background: #0f1c24;
+        }
+
+        .submit-btn {
+            background: linear-gradient(105deg, #2c7cb6, #1f6392);
+            border: none;
+            padding: 0.9rem 1.8rem;
+            border-radius: 3rem;
+            font-weight: 600;
+            font-size: 1rem;
+            color: white;
+            cursor: pointer;
+            transition: transform 0.15s, background 0.2s;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .submit-btn:hover {
+            background: linear-gradient(105deg, #3b8fc9, #2874a8);
+            transform: scale(0.97);
+        }
+
+        .error-msg {
+            color: #ffb7a7;
+            background: rgba(180, 50, 30, 0.25);
+            backdrop-filter: blur(4px);
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            font-size: 0.85rem;
+            margin-top: 0.8rem;
+            font-weight: 500;
+            border-left: 3px solid #ff7a5c;
+        }
+
+        /* 视频区域样式 */
+        .video-area {
+            animation: fadeSlideUp 0.5s ease-out;
+        }
+
+        .video-header {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            margin-bottom: 1.2rem;
+            border-bottom: 1px solid rgba(90, 140, 170, 0.4);
+            padding-bottom: 0.75rem;
+        }
+
+        .video-header h3 {
+            font-size: 1.6rem;
+            font-weight: 500;
+            color: #e2f0ff;
+            letter-spacing: -0.2px;
+        }
+
+        .logout-btn {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(80, 130, 160, 0.5);
+            padding: 0.45rem 1.2rem;
+            border-radius: 3rem;
+            color: #cce3f5;
+            font-weight: 500;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .logout-btn:hover {
+            background: rgba(210, 70, 50, 0.5);
+            border-color: #ff8866;
+            color: white;
+        }
+
+        .video-container {
+            border-radius: 1.8rem;
+            overflow: hidden;
+            background: #000000aa;
+            box-shadow: 0 20px 35px -12px black;
+            margin-top: 0.8rem;
+        }
+
+        video {
+            width: 100%;
+            display: block;
+            border-radius: 1.8rem;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .video-info {
+            margin-top: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            color: #bdd4e8;
+            font-size: 0.85rem;
+        }
+
+        .upload-hint {
+            background: rgba(30, 50, 65, 0.7);
+            border-radius: 2rem;
+            padding: 0.5rem 1rem;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            backdrop-filter: blur(4px);
+        }
+
+        .upload-hint span {
+            font-size: 1.2rem;
+        }
+
+        .file-label {
+            background: #2c6e8f;
+            padding: 0.4rem 1rem;
+            border-radius: 2rem;
+            cursor: pointer;
+            font-weight: 500;
+            transition: 0.2s;
+            display: inline-block;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+
+        .file-label:hover {
+            background: #3c86ab;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .custom-link {
+            font-size: 0.75rem;
+            color: #7fa6c0;
+            text-decoration: none;
+            border-bottom: 1px dotted;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 2rem;
+            font-size: 0.7rem;
+            color: #5e7e97;
+            border-top: 1px solid rgba(80,120,140,0.3);
+            padding-top: 1.2rem;
+        }
+
+        @keyframes fadeSlideUp {
+            from {
+                opacity: 0;
+                transform: translateY(18px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* 响应式 */
+        @media (max-width: 680px) {
+            .content-wrapper {
+                padding: 1.5rem;
+            }
+            h2 {
+                font-size: 1.5rem;
+            }
+            .password-box {
+                flex-direction: column;
+                width: 100%;
+            }
+            .submit-btn {
+                width: 100%;
+            }
+            .video-header h3 {
+                font-size: 1.3rem;
+            }
+        }
+
+        /* 优雅滚动条 */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f1e26;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #2c6b8f;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="glass-card">
+    <div class="content-wrapper">
+        <!-- 密码保护面板 -->
+        <div id="passwordPanel" class="panel lock-area">
+            <div class="lock-icon">🔒</div>
+            <h2>私人影像馆</h2>
+            <div class="sub">受密码保护的视频空间</div>
+            <div class="password-box">
+                <input type="password" id="passwordInput" class="password-input" placeholder="请输入访问密码" autocomplete="off">
+                <button id="unlockBtn" class="submit-btn">解锁进入</button>
+            </div>
+            <div id="errorMsg" class="error-msg" style="display: none;">⚠️ 密码错误，请重试</div>
+            <div style="margin-top: 1.2rem; font-size: 0.7rem; color: #5e8aa8;">* 拥有权限者输入密码即可查看视频</div>
+        </div>
+
+        <!-- 视频内容面板 (初始隐藏) -->
+        <div id="videoPanel" class="panel hidden-panel video-area">
+            <div class="video-header">
+                <h3>🎬 我的珍藏视频</h3>
+                <button id="logoutBtn" class="logout-btn">🔐 退出登录</button>
+            </div>
+
+            <!-- 视频播放器区域 -->
+            <div class="video-container">
+                <video id="mainVideo" controls controlsList="nodownload" style="width: 100%;" preload="metadata">
+                    <source id="videoSource" src="" type="video/mp4">
+                    您的浏览器不支持 video 标签，请升级浏览器。
+                </video>
+            </div>
+
+            <div class="video-info">
+                <div class="upload-hint">
+                    <span>📁</span> 上传新视频 (替换当前)
+                </div>
+                <label class="file-label">
+                    📤 选择本地视频文件
+                    <input type="file" id="uploadVideo" accept="video/mp4,video/webm,video/ogg,video/quicktime">
+                </label>
+                <span style="font-size:0.7rem;">支持 MP4 / WebM 等格式</span>
+            </div>
+            <div id="uploadStatus" style="font-size: 0.75rem; margin-top: 8px; color: #8fbbdf; text-align: center;"></div>
+            <footer>
+                ⚡ 私人空间 · 视频仅保存在您本地浏览器中
+            </footer>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function() {
+        // ======================== 配置区 =========================
+        // 【重要】请修改为您自己的访问密码（默认示例密码: 9527）
+        const CORRECT_PASSWORD = "9527";   //  ← 在这里修改您的密码 (例如 "mypassword123")
+        
+        // 本地存储的key
+        const STORAGE_AUTH_KEY = "video_auth_token";
+        const STORAGE_VIDEO_KEY = "user_uploaded_video";  // 存储用户上传的视频 (base64)
+        const DEFAULT_DEMO_VIDEO = "";   // 可选默认演示视频(留空表示没有预设视频，让用户上传)
+        // 如果希望初次就有示例视频，可以放一个公开的测试视频URL，但为了隐私，不主动添加外部链接。
+        // 默认无预设视频 -> 用户需自行上传。
+        
+        // DOM 元素
+        const passwordPanel = document.getElementById('passwordPanel');
+        const videoPanel = document.getElementById('videoPanel');
+        const passwordInput = document.getElementById('passwordInput');
+        const unlockBtn = document.getElementById('unlockBtn');
+        const errorMsgDiv = document.getElementById('errorMsg');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const mainVideo = document.getElementById('mainVideo');
+        const videoSource = document.getElementById('videoSource');
+        const uploadVideoInput = document.getElementById('uploadVideo');
+        const uploadStatusSpan = document.getElementById('uploadStatus');
+        
+        // 辅助函数：显示错误信息短暂或者清除
+        function showError(message) {
+            errorMsgDiv.style.display = 'block';
+            errorMsgDiv.textContent = `⚠️ ${message}`;
+            setTimeout(() => {
+                if(errorMsgDiv) errorMsgDiv.style.display = 'none';
+            }, 2200);
+        }
+        
+        function hideError() {
+            errorMsgDiv.style.display = 'none';
+        }
+        
+        // 加载视频：优先从 localStorage 读取用户之前上传的视频 base64，若无则显示空白提示（但提供一个友好占位）
+        function loadVideoFromStorage() {
+            const storedVideo = localStorage.getItem(STORAGE_VIDEO_KEY);
+            if (storedVideo && storedVideo.startsWith('data:video/')) {
+                // 之前用户上传保存过的视频
+                videoSource.src = storedVideo;
+                mainVideo.load();
+                uploadStatusSpan.innerHTML = "✅ 已加载上次保存的视频 | 可上传新视频替换";
+                // 可选: 重置提示一段时间后渐隐? 无所谓
+            } else {
+                // 没有任何视频数据，显示提示并让用户上传
+                videoSource.src = "";
+                mainVideo.load();
+                uploadStatusSpan.innerHTML = "📭 暂无视频，请点击上方按钮上传您的个人视频 (仅保存在此浏览器中)";
+                // 额外显示一个占位文字效果
+                mainVideo.poster = ""; 
+                // 简单监听：如果没有视频src，显示友好提示
+                const originalPoster = mainVideo.poster;
+                if(!videoSource.src || videoSource.src === ""){
+                    // 尝试显示一个文本层不能直接改video，但我们可以添加一个临时提示。不做额外处理，用户看到黑屏会明白上传。
+                }
+            }
+        }
+        
+        // 保存视频到本地存储 (base64)
+        function saveVideoToStorage(base64Data) {
+            if (!base64Data) return false;
+            try {
+                localStorage.setItem(STORAGE_VIDEO_KEY, base64Data);
+                return true;
+            } catch(e) {
+                console.warn("存储失败，可能视频过大超出localStorage限制(约5-10MB)");
+                uploadStatusSpan.innerHTML = "❌ 视频过大，无法永久保存！请压缩视频或使用小于 ~5MB 的片段。本次仍可播放，但刷新后可能丢失。";
+                alert("视频文件较大，可能无法持久保存到本地！建议使用小于5MB的短视频。\n当前临时可看，刷新页面后若超限会丢失。");
+                return false;
+            }
+        }
+        
+        // 处理上传的视频文件
+        function handleVideoUpload(file) {
+            if (!file) return;
+            // 检查类型
+            if (!file.type.startsWith('video/')) {
+                alert('请选择有效的视频文件 (MP4, WebM 等)');
+                return;
+            }
+            // 大小限制：建议提醒用户，但为了体验，限制最大50MB，但localStorage极限约5-10MB，大视频用URL.createObjectURL临时播放并提醒无法永久存储。
+            // 更好的方案：如果文件太大，采用临时blob URL，但不存入localStorage，让用户知道刷新会丢失，并提示用短视频。
+            const maxSizeForStorage = 8 * 1024 * 1024; // 8MB (保险)
+            if (file.size > maxSizeForStorage) {
+                // 如果超出本地存储推荐大小，我们仍然可以用blob URL播放，但不持久化，给出明确提示
+                const blobUrl = URL.createObjectURL(file);
+                videoSource.src = blobUrl;
+                mainVideo.load();
+                uploadStatusSpan.innerHTML = "⚠️ 视频较大(>8MB)，仅本次会话可看，刷新后需重新上传。建议压缩至5MB内以永久保存。";
+                // 尝试清除旧的base64存储避免混乱
+                localStorage.removeItem(STORAGE_VIDEO_KEY);
+                // 播放完毕后无需额外操作
+                return;
+            }
+            
+            // 文件较小，转base64保存到localStorage实现持久化
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const base64Data = e.target.result; // data:video/mp4;base64,xxxx
+                // 保存到本地存储
+                const saved = saveVideoToStorage(base64Data);
+                // 更新播放器
+                videoSource.src = base64Data;
+                mainVideo.load();
+                if (saved) {
+                    uploadStatusSpan.innerHTML = "✨ 视频已上传并永久保存至本浏览器！刷新页面依然可用。";
+                } else {
+                    uploadStatusSpan.innerHTML = "⚠️ 保存受限，但视频当前可播放。";
+                }
+                // 滚动提示一下
+                setTimeout(() => {
+                    if(uploadStatusSpan) uploadStatusSpan.style.opacity = '1';
+                }, 100);
+            };
+            reader.onerror = function() {
+                alert("读取视频文件失败，请重试");
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        // 退出登录（清除认证标记，显示密码面板）
+        function logout() {
+            localStorage.removeItem(STORAGE_AUTH_KEY);
+            // 重置界面
+            passwordPanel.classList.remove('hidden-panel');
+            videoPanel.classList.add('hidden-panel');
+            if (passwordInput) passwordInput.value = '';
+            hideError();
+            // 可选停止视频播放
+            if (mainVideo) {
+                mainVideo.pause();
+            }
+            // 清空上传状态提示（面板隐藏无关紧要）
+        }
+        
+        // 认证成功，加载视频面板
+        function authSuccess() {
+            // 存储认证标记 (24小时有效可扩展，但为了体验, 存储一个时间戳或简单标记)
+            localStorage.setItem(STORAGE_AUTH_KEY, "authenticated");
+            // 切换面板
+            passwordPanel.classList.add('hidden-panel');
+            videoPanel.classList.remove('hidden-panel');
+            // 加载现有视频
+            loadVideoFromStorage();
+            // 重置错误样式
+            hideError();
+            if(passwordInput) passwordInput.value = '';
+        }
+        
+        // 验证密码逻辑
+        function attemptUnlock() {
+            const enteredPwd = passwordInput.value.trim();
+            if (enteredPwd === CORRECT_PASSWORD) {
+                authSuccess();
+            } else {
+                showError("密码错误，无法进入");
+                passwordInput.value = '';
+                passwordInput.focus();
+            }
+        }
+        
+        // 检查之前是否已经认证过（session持久化）
+        function checkPreviousAuth() {
+            const authFlag = localStorage.getItem(STORAGE_AUTH_KEY);
+            if (authFlag === "authenticated") {
+                // 自动登录，显示视频面板
+                passwordPanel.classList.add('hidden-panel');
+                videoPanel.classList.remove('hidden-panel');
+                loadVideoFromStorage();
+            } else {
+                // 未认证状态
+                passwordPanel.classList.remove('hidden-panel');
+                videoPanel.classList.add('hidden-panel');
+            }
+        }
+        
+        // 监听上传控件
+        if (uploadVideoInput) {
+            uploadVideoInput.addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    handleVideoUpload(file);
+                }
+                // 清空input值，使得重复上传同一个文件依然触发change
+                uploadVideoInput.value = '';
+            });
+        }
+        
+        // 登出按钮
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', () => {
+                logout();
+            });
+        }
+        
+        // 解锁按钮点击及回车事件
+        unlockBtn.addEventListener('click', attemptUnlock);
+        passwordInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                attemptUnlock();
+            }
+        });
+        
+        // 额外优化：如果视频面板显示且没有视频资源，友善提示上传，并增加一种拖拽上传的额外小功能？
+        // 添加一个拖拽区域 简单增强？但非必要，但已经提供上传按钮，为了完美体验可给video-container区域一个拖拽上传
+        // 增强: 支持在视频容器上拖拽上传新视频
+        const videoContainer = document.querySelector('.video-container');
+        if (videoContainer) {
+            // 阻止默认拖拽行为
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                videoContainer.addEventListener(eventName, preventDefaults, false);
+            });
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            videoContainer.addEventListener('drop', (e) => {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                if (files && files.length > 0) {
+                    const file = files[0];
+                    if (file.type.startsWith('video/')) {
+                        handleVideoUpload(file);
+                        uploadStatusSpan.innerHTML = "📀 已通过拖拽上传视频！";
+                    } else {
+                        alert("请拖拽视频文件 (mp4/webm等)");
+                    }
+                }
+            });
+            videoContainer.addEventListener('dragenter', () => {
+                videoContainer.style.opacity = '0.9';
+                videoContainer.style.transition = '0.1s';
+            });
+            videoContainer.addEventListener('dragleave', () => {
+                videoContainer.style.opacity = '1';
+            });
+            videoContainer.addEventListener('drop', () => {
+                videoContainer.style.opacity = '1';
+            });
+        }
+        
+        // 为了更优雅: 若没有视频src并且用户第一次认证成功后, 显示一个友好的中央占位, 但我们依然依靠uploadStatusSpan.
+        // 额外监听video加载失败时，展示提示.
+        mainVideo.addEventListener('error', () => {
+            if(!videoSource.src || videoSource.src === "" || videoSource.src.indexOf('blob:') === -1 && videoSource.src.indexOf('data:') === -1){
+                uploadStatusSpan.innerHTML = "🎥 尚无可用视频，请点击上方按钮上传您的私人视频。";
+            } else {
+                uploadStatusSpan.innerHTML = "⚠️ 视频加载失败，可能格式不支持或文件损坏，请重新上传。";
+            }
+        });
+        
+        // 初始化
+        checkPreviousAuth();
+        
+        // 可选的额外：如果密码忘记，但为了方便演示，在控制台打印提示（用户可修改密码），但为了安全避免暴露密码
+        // 但既然代码开源，用户可以手动修改脚本中的 CORRECT_PASSWORD 常量
+        console.log("私人视频空间已加载 | 如需修改密码，请在代码中更改 CORRECT_PASSWORD 变量值");
+    })();
+</script>
+</body>
+</html>
